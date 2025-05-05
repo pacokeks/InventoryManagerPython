@@ -1,12 +1,11 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QMessageBox
 
 class ProductFormView(QWidget):
     """
     Represents the product form view in the application.
-
+ 
     This class provides a graphical interface for managing product-related
-    operations, such as displaying messages, updating the product list, 
+    operations, such as displaying messages, updating the product list,
     retrieving input values, and clearing form fields.
 
     Attributes:
@@ -15,7 +14,7 @@ class ProductFormView(QWidget):
         priceInput (QLineEdit): Input field for the product price.
         quantityInput (QLineEdit): Input field for the product quantity.
         submitButton (QPushButton): Button to submit the form data.
-        deleteButton (QPushButton): Button to delete a product.
+        deleteButton (QPushButton): Deletes the selected products.
         cancelButton (QPushButton): Button to cancel the form operation.
 
     Methods:
@@ -25,54 +24,94 @@ class ProductFormView(QWidget):
         updateProductList(products: list): Updates the product list in the view.
         getInput() -> tuple: Retrieves the input values from the form fields.
         clearInput(): Clears the input fields in the form.
+        addWidget(widget: QWidget, info: str): Add specified widget to layout.
     """
     
     def __init__(self):
         """
         Initializes a new instance of the ProductFormView class.
-
+ 
         Sets up the base QWidget and prepares the UI components.
         """
         super().__init__()
+        self.initUI()
+    
+    def addWidget(self, widget: QWidget, info: str):
+        """
+        Adds widget to layout and sets placeholder text as given within arguments.
+
+        Args:
+            widget (QWidget): Widget Object to add to layout
+            placeholder (str): Further information regarding widget.
+        """
+
+        if isinstance(widget, QLineEdit):
+            self.layout.addWidget(QLabel(info))
+        elif isinstance(widget, QPushButton):
+            widget.setText(info)
+
+        self.layout.addWidget(widget)
         
     def initUI(self):
         """
         Sets up the graphical user interface for the product form.
-
+ 
         This method initializes and arranges all UI components, such as labels,
         input fields, and buttons, within the form.
         """
-        pass
+        self.setWindowTitle("WaWi")
+
+        self.layout = QVBoxLayout()
+
+        self.nameInput = QLineEdit(self)
+        self.addWidget(self.nameInput, "Produktbezeichnung")
+
+        self.priceInput = QLineEdit(self)
+        self.addWidget(self.priceInput, "Preis")
+
+        self.quantityInput = QLineEdit(self)
+        self.addWidget(self.quantityInput, "Menge")
+
+        self.submitButton = QPushButton(self)
+        self.addWidget(self.submitButton, "Hinzufügen")
+
+        self.deleteButton = QPushButton(self)
+        self.addWidget(self.deleteButton, "Entfernen")
+
+        self.cancelButton = QPushButton(self)
+        self.addWidget(self.cancelButton, "Abbrechen")
+
+        self.setLayout(self.layout)
 
     def showMessage(self, title: str, message: str):
         """
         Displays a message box with the given message.
-
+ 
         Args:
             title (str): The title of the message box.
             message (str): The message to display.
         """
         pass
-    
+
     def updateProductList(self, products: list):
         """
         Updates the product list in the view.
-
+ 
         Args:
             products (list): The list of products to display.
         """
         pass
-    
+
     def getInput(self) -> tuple:
         """
         Retrieves the input values from the form fields.
-
+ 
         Returns:
             tuple: A tuple containing the input values (e.g., name, price, quantity).
         """
         pass
-    
-    def clearInput(self):
+
+    def clearInputs(self):
         """
         Clears the input fields in the form.
         """

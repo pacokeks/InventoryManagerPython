@@ -1,72 +1,85 @@
+ 
 from .product_model import Product
-
 class InventoryManager:
     """
-    Manages the inventory of products, including adding, removing, saving, 
-    loading, and retrieving products.
-
+    InventoryManager is responsible for managing the inventory of products.
+    It provides methods to add, remove, save, load, and retrieve products.
+    Args:
+        InventoryManager (object): The base class for all classes in Python.
     Attributes:
-        products (list[Product]): A list of products in the inventory.
-        currentId (int): The current product ID being processed.
-
+        products (list): A list of Product objects representing the inventory.
+        currentId (int): The ID of the currently selected product.
     Methods:
-        __init__(): Initializes the InventoryManager instance.
-        addProduct(product: Product): Adds a new product to the inventory.
-        removeProduct(productId: int): Removes a product from the inventory by its ID.
-        saveProducts(): Saves the current list of products to persistent storage.
-        loadProducts(): Loads the list of products from persistent storage.
-        getProduct(productId: int) -> Product: Retrieves a product by its ID.
+        addProduct(product): Adds a new product to the inventory.
+        removeProduct(productId): Removes a product from the inventory based on its ID.
+        saveProducts(): Saves the current inventory to a file.
+        loadProducts(): Loads the inventory from a file.
+        getProduct(productId): Retrieves a product from the inventory based on its ID.
+    Example:
+        inventory = InventoryManager()
+        product = Product(1, "Laptop", 999.99, 10)
+        inventory.addProduct(product)
+        print(inventory.getProduct(1))
+        inventory.saveProducts()
+        inventory.loadProducts()
     """
-
     def __init__(self):
         """
-        Initializes a new instance of the InventoryManager class.
-
+        Initializes the InventoryManager with an empty product list and sets the currentId to None.
+        Args:
+            InventoryManager (object): The base class for all classes in Python.
         Attributes:
-            products (list[Product]): Initializes an empty list to store products.
-            currentId (int): Initializes as None to track the current product ID.
+            products (list): A list of Product objects representing the inventory.
+            currentId (int): The ID of the currently selected product.
+        Example:
+            inventory = InventoryManager()
+            print(inventory.products)
+            print(inventory.currentId)
         """
         self.products = []
         self.currentId = None
-
     def addProduct(self, product: Product):
         """
         Adds a new product to the inventory.
-
         Args:
-            product (Product): The product to be added.
+            product (Product): The product to be added to the inventory.
+        Returns:
+            None
         """
         pass
-
     def removeProduct(self, productId: int):
         """
-        Removes a product from the inventory by its ID.
-
+        Removes a product from the inventory based on its ID.
         Args:
             productId (int): The ID of the product to be removed.
+        Returns:
+            None
         """
         pass
-
     def saveProducts(self):
         """
-        Saves the current list of products to persistent storage.
+        Saves the current inventory to a file.
+        Args:
+            None
+        Returns:
+            None
         """
         pass
-
     def loadProducts(self):
         """
-        Loads the list of products from persistent storage.
+        Loads the inventory from a file.
+        Args:
+            None
+        Returns:
+            None
         """
         pass
-
     def getProduct(self, productId: int) -> Product:
         """
-        Retrieves a product from the inventory by its ID.
-
+        Retrieves a product from the inventory based on its ID.
         Args:
-            productId (int): The ID of the product to retrieve.
-
+            productId (int): The ID of the product to be retrieved.
         Returns:
-            Product: The product with the specified ID, or None if not found.
+            Product: The product object if found, otherwise None.
         """
         pass

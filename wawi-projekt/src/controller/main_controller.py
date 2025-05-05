@@ -3,10 +3,11 @@ from model.product_model import Product
 from view.product_form_view import ProductFormView
 
 class MainController:
+
     """
     The MainController class acts as the central controller of the application.
 
-    It connects the view (ProductFormView) with the model (InventoryManager) 
+    It connects the view (ProductFormView) with the model (InventoryManager)
     and handles user interactions, such as adding or removing products.
 
     Attributes:
@@ -15,34 +16,27 @@ class MainController:
 
     Methods:
         __init__(): Initializes the MainController instance.
-        addProduct(product: Product): Adds a new product to the inventory.
-        removeProduct(productId: int): Removes a product from the inventory by its ID.
-        start(): 
+        addProduct(): Adds a new product to the inventory.
+        removeProduct(): Removes a product from the inventory by its ID.
+        start(): Starts the GUI
     """
+    
     def __init__(self):
-        """
-        Initializes a new instance of the MainController class.
-
-        Attributes:
-            inventory_manager (InventoryManager): An instance of InventoryManager to manage products.
-            view (ProductFormView): An instance of ProductFormView to handle the user interface.
-        """
-        self.inventory_manager = InventoryManager()
+        self.model = InventoryManager()
         self.view = ProductFormView()
 
-
-    def addProduct(self, product: Product):
+    def addProduct(self):
         """
         Adds a new product to the inventory.
         """
 
-        
-    def removeProduct(self, productId: int):
+    def removeProduct(self):
         """
         Removes a product from the inventory by its ID.
         """
 
-    
     def start(self):
-        pass
-        
+        """
+        Calls the show()-Mehtod within the view instance for displaying the form.
+        """
+        self.view.show()
