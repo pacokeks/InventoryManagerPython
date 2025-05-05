@@ -8,11 +8,23 @@ class InventoryManager:
     Attributes:
         products (list[Product]): A list of products in the inventory.
         currentId (int): The current product ID being processed.
+
+    Methods:
+        __init__(): Initializes the InventoryManager instance.
+        addProduct(product: Product): Adds a new product to the inventory.
+        removeProduct(productId: int): Removes a product from the inventory by its ID.
+        saveProducts(): Saves the current list of products to persistent storage.
+        loadProducts(): Loads the list of products from persistent storage.
+        getProduct(productId: int) -> Product: Retrieves a product by its ID.
     """
 
     def __init__(self):
         """
         Initializes a new instance of the InventoryManager class.
+
+        Attributes:
+            products (list[Product]): Initializes an empty list to store products.
+            currentId (int): Initializes as None to track the current product ID.
         """
         self.products = []
         self.currentId = None
