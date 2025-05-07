@@ -25,7 +25,8 @@ class InventoryManager:
         """
         self.products = []
         self.currentId = 0
-        self.path = os.getcwd() + "/projekt pascal/src/data/products.json"
+        self.path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "products.json")
+        #self.path = os.getcwd() + "/src/data/products.json"
         self.loadProducts()
 
     def addProduct(self, product: Product):
