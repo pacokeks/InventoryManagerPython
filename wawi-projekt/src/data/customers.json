@@ -1,0 +1,16 @@
+[
+    {
+      "customerId": 1,
+      "name": "Pascal",
+      "address": "Ohmstraße 6, Detmold",
+      "email": "pascal@example.com",
+      "phone": "123456-7890"
+    },
+    {
+      "customerId": 2,
+      "name": "Mete",
+      "address": "DAA",
+      "email": "Mete@example.com",
+      "phone": "123456-7890"
+    }
+  ]
