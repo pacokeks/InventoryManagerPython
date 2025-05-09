@@ -34,7 +34,7 @@ class ProductFormView(QWidget):
         """
         super().__init__()
         self.initUI()
-    
+        
     def initUI(self):
         """
         Sets up the graphical user interface for the product form.
