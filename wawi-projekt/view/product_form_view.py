@@ -48,6 +48,9 @@ class ProductFormView(BaseFormView):
         self.submitButton.setToolTip("Add the product to inventory")
         self.clearButton.setToolTip("Clear all input fields")
         self.deleteButton.setToolTip("Remove selected products from inventory")
+        
+        # Set tooltip for the silent delete checkbox
+        self.silentDeleteCheckbox.setToolTip("When checked, products will be deleted without confirmation messages")
     
     def getInput(self):
         """

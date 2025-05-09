@@ -55,6 +55,9 @@ class CustomerFormView(BaseFormView):
         self.submitButton.setToolTip("Add the customer to database")
         self.clearButton.setToolTip("Clear all input fields")
         self.deleteButton.setToolTip("Remove selected customers from database")
+        
+        # Set tooltip for the silent delete checkbox
+        self.silentDeleteCheckbox.setToolTip("When checked, customers will be deleted without confirmation messages")
     
     def getInput(self):
         """

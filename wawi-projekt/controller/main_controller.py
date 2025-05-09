@@ -254,7 +254,7 @@ class MainController:
             message = "No new sample data was imported. All sample data already exists."
             logger.info(message)
             QMessageBox.information(self.main_window, "Sample Data", message)
-
+    
     def _get_existing_products(self):
         """
         Get a list of all existing products.
@@ -265,7 +265,7 @@ class MainController:
         # Ensure products are loaded
         self.product_manager.load_all()
         return self.product_manager.items
-
+        
     def _get_existing_customers(self):
         """
         Get a list of all existing customers.
@@ -350,13 +350,17 @@ class MainController:
     
     def _remove_product(self):
         """
-        Remove a product from the inventory.
+        Remove selected products from the inventory.
         """
         selected_items = self.product_view.listWidget.selectedItems()
         
         if not selected_items:
             self._show_message(self.product_view, "Note", "Please select a product to remove.")
             return
+        
+        # Track statistics
+        removed_count = 0
+        failed_count = 0
         
         for item in selected_items:
             self.product_view.listWidget.takeItem(self.product_view.listWidget.row(item))
@@ -367,15 +371,28 @@ class MainController:
                 
                 if self.product_manager.remove(selected_id):
                     logger.info(f"Product removed: {selected_id}")
+                    removed_count += 1
                 else:
-                    self._show_message(self.product_view, "Error", f"Failed to remove product: {self.product_manager.db.error}")
-                    return
+                    logger.error(f"Failed to remove product: {self.product_manager.db.error}")
+                    failed_count += 1
                     
             except (ValueError, IndexError) as e:
-                self._show_message(self.product_view, "Error", f"Error removing product: {str(e)}")
-                return
+                logger.error(f"Error removing product: {str(e)}")
+                failed_count += 1
         
-        self._show_message(self.product_view, "Success", "Selected products have been removed.")
+        # Show result message if not in silent mode or if there were failures
+        if failed_count > 0:
+            self._show_message(
+                self.product_view, 
+                "Error", 
+                f"Failed to remove {failed_count} product(s)."
+            )
+        elif removed_count > 0:
+            self._show_message(
+                self.product_view, 
+                "Success", 
+                f"Successfully removed {removed_count} product(s)."
+            )
     
     def _add_customer(self):
         """
@@ -412,13 +429,17 @@ class MainController:
     
     def _remove_customer(self):
         """
-        Remove a customer from the database.
+        Remove selected customers from the database.
         """
         selected_items = self.customer_view.listWidget.selectedItems()
         
         if not selected_items:
             self._show_message(self.customer_view, "Note", "Please select a customer to remove.")
             return
+        
+        # Track statistics
+        removed_count = 0
+        failed_count = 0
         
         for item in selected_items:
             self.customer_view.listWidget.takeItem(self.customer_view.listWidget.row(item))
@@ -429,15 +450,28 @@ class MainController:
                 
                 if self.customer_manager.remove(selected_id):
                     logger.info(f"Customer removed: {selected_id}")
+                    removed_count += 1
                 else:
-                    self._show_message(self.customer_view, "Error", f"Failed to remove customer: {self.customer_manager.db.error}")
-                    return
+                    logger.error(f"Failed to remove customer: {self.customer_manager.db.error}")
+                    failed_count += 1
                     
             except (ValueError, IndexError) as e:
-                self._show_message(self.customer_view, "Error", f"Error removing customer: {str(e)}")
-                return
+                logger.error(f"Error removing customer: {str(e)}")
+                failed_count += 1
         
-        self._show_message(self.customer_view, "Success", "Selected customers have been removed.")
+        # Show result message if not in silent mode or if there were failures
+        if failed_count > 0:
+            self._show_message(
+                self.customer_view, 
+                "Error", 
+                f"Failed to remove {failed_count} customer(s)."
+            )
+        elif removed_count > 0:
+            self._show_message(
+                self.customer_view, 
+                "Success", 
+                f"Successfully removed {removed_count} customer(s)."
+            )
     
     def _show_message(self, view, title, message):
         """
@@ -451,6 +485,12 @@ class MainController:
         if hasattr(view, 'showMessage') and callable(view.showMessage):
             view.showMessage(title, message)
         else:
+            # For views that don't have a custom showMessage method
+            # Check if we're in silent mode and this is a success message for removal
+            if hasattr(view, 'silentDeleteCheckbox') and view.silentDeleteCheckbox.isChecked() and title == "Success" and "removed" in message:
+                # Skip showing message for successful deletions in silent mode
+                return
+                
             QMessageBox.information(view, title, message)
     
     def start(self):
