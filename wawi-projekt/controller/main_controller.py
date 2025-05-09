@@ -334,7 +334,9 @@ class MainController:
         
         # Create and add product
         try:
-            product = Product(name=name, price=float(price), quantity=int(quantity))
+            # Price is directly passed to the Product constructor
+            # The Product class will handle decimal point/comma conversion
+            product = Product(name=name, price=price, quantity=int(quantity))
             
             if self.product_manager.add(product):
                 self.product_view.clearInputs()
