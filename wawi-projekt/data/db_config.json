@@ -1,12 +1,13 @@
 {
-  "db_type": "sqlite",
+  "db_type": "mariadb",
   "mariadb": {
     "host": "localhost",
     "user": "root",
     "password": "",
-    "database": "wawi"
+    "database": "wawi",
+    "port": 8111
   },
   "sqlite": {
-    "database_path": "d:\\Programming\\Python\\InventoryManagerPython\\wawi-projekt\\data\\wawi.db"
+    "database_path": "d:\\Programming\\DAA\\Oster, Patrick\\fachquali-oop\\projekt pascal refactored\\data\\wawi.db"
   }
 }

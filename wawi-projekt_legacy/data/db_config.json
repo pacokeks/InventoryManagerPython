@@ -1,0 +1,12 @@
+{
+  "db_type": "sqlite",
+  "mariadb": {
+    "host": "localhost",
+    "user": "root",
+    "password": "",
+    "database": "wawi"
+  },
+  "sqlite": {
+    "database_path": "d:\\Programming\\Python\\InventoryManagerPython\\wawi-projekt\\data\\wawi.db"
+  }
+}

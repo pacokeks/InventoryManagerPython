@@ -1,183 +1,175 @@
-from model.inventory_manager_model import InventoryManager
-from model.product_model import Product
-from view.product_form_view import ProductFormView
-from model.customer_manager_model import CustomerManager
-from model.customer_model import Customer
-from view.customer_form_view import CustomerFormView
-from model.database_config import DatabaseConfig
-from view.database_settings_dialog import DatabaseSettingsDialog
-from PyQt5.QtWidgets import QTabWidget, QMainWindow, QWidget, QVBoxLayout, QMessageBox, QAction, QMenu
 import logging
 import os
+from typing import Dict, Any, Tuple
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+from PyQt5.QtWidgets import QTabWidget, QMainWindow, QAction, QMessageBox
+
+from model.product_model import Product
+from model.customer_model import Customer
+from model.product_manager import ProductManager
+from model.customer_manager import CustomerManager
+from model.database_config import DatabaseConfig
+from model.database_connection_factory import DatabaseConnectionFactory
+from view.product_form_view import ProductFormView
+from view.customer_form_view import CustomerFormView
+from view.database_settings_dialog import DatabaseSettingsDialog
+
 logger = logging.getLogger('MainController')
 
 class MainController:
     """
     The MainController class acts as the central controller of the application.
-
-    It connects the views (ProductFormView, CustomerFormView) with the models 
-    (InventoryManager, CustomerManager) and handles user interactions.
+    
+    It connects the views (ProductFormView, CustomerFormView) with the models
+    (ProductManager, CustomerManager) and handles user interactions.
+    
+    Attributes:
+        db_connection: The database connection.
+        product_manager (ProductManager): Manager for products.
+        customer_manager (CustomerManager): Manager for customers.
+        main_window (QMainWindow): The main application window.
+        tabs (QTabWidget): The tab widget for product and customer views.
+        product_view (ProductFormView): The product form view.
+        customer_view (CustomerFormView): The customer form view.
     """
     
     def __init__(self):
         """
-        Initializes the MainController with models and views and
-        sets up the main window with tabs.
+        Initialize the MainController with models and views and set up the main window.
         """
-        from model.SQLiteConnection import SQLiteConnection
-
-        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "wawi.db")
-
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-
-        self.db_connection = SQLiteConnection(db_path)
-
-        from model.database_queries import DatabaseQueries
-        self.db_connection.create_tables(DatabaseQueries.create_tables_query())
-
+        # Initialize database connection
+        self._initialize_database()
+        
+        # Initialize models
+        self.product_manager = ProductManager(self.db_connection)
+        self.customer_manager = CustomerManager(self.db_connection)
+        
+        # Initialize main window
+        self.main_window = QMainWindow()
+        self.main_window.setWindowTitle("WaWi - Warehouse Management System")
+        self.main_window.setMinimumSize(600, 500)
+        self.main_window.closeEvent = self.closeEvent
+        
+        # Create menus
+        self._create_menus()
+        
+        # Initialize views
+        self._initialize_views()
+    
+    def _initialize_database(self):
+        """
+        Initialize the database connection.
+        """
+        # Check if a configuration file exists
+        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "db_config.json")
+        config = DatabaseConfig(config_path) if os.path.exists(config_path) else None
+        
+        # Create database connection
+        factory = DatabaseConnectionFactory(config)
+        self.db_connection = factory.create_connection()
+        
+        # Verify database is working
         test_query = "SELECT 1 FROM products LIMIT 1"
         if self.db_connection.execute_query(test_query):
             logger.info("Database tables verified.")
         else:
             logger.warning("Database tables might not exist or are empty.")
-
-        self.inventory_manager = InventoryManager(self.db_connection)
-        self.customer_manager = CustomerManager(self.db_connection)
-
-        self.main_window = QMainWindow()
-        self.main_window.setWindowTitle("WaWi - Warehouse Management System")
-        self.main_window.setMinimumSize(600, 500)
-
-        self.main_window.closeEvent = self.closeEvent
-
-        self.createMenus()
-        
-        self.tabs = QTabWidget()
-
-        self.product_view = ProductFormView()
-        self.product_view.submitButton.clicked.connect(self.addProduct)
-        self.product_view.deleteButton.clicked.connect(self.removeProduct)
-        
-        self.customer_view = CustomerFormView()
-        self.customer_view.submitButton.clicked.connect(self.addCustomer)
-        self.customer_view.deleteButton.clicked.connect(self.removeCustomer)
-        
-        self.tabs.addTab(self.product_view, "Products")
-        self.tabs.addTab(self.customer_view, "Customers")
-        
-        self.main_window.setCentralWidget(self.tabs)
     
-    def createMenus(self):
+    def _create_menus(self):
         """
-        Creates application menus.
+        Create application menus.
         """
         menu_bar = self.main_window.menuBar()
-
+        
+        # File menu
         file_menu = menu_bar.addMenu("File")
-
+        
+        # Database settings action
         settings_action = QAction("Database Settings", self.main_window)
-        settings_action.triggered.connect(self.showDatabaseSettings)
+        settings_action.triggered.connect(self._show_database_settings)
         file_menu.addAction(settings_action)
-
+        
+        # Import sample data action
         import_action = QAction("Import Sample Data", self.main_window)
-        import_action.triggered.connect(self.importSampleData)
+        import_action.triggered.connect(self._import_sample_data)
         file_menu.addAction(import_action)
-
+        
+        # Exit action
         exit_action = QAction("Exit", self.main_window)
         exit_action.triggered.connect(self.main_window.close)
         file_menu.addAction(exit_action)
     
-    def showDatabaseSettings(self):
+    def _initialize_views(self):
         """
-        Shows the database settings dialog.
+        Initialize and connect the views.
+        """
+        self.tabs = QTabWidget()
+        
+        # Initialize product view
+        self.product_view = ProductFormView()
+        self.product_view.submitButton.clicked.connect(self._add_product)
+        self.product_view.deleteButton.clicked.connect(self._remove_product)
+        
+        # Initialize customer view
+        self.customer_view = CustomerFormView()
+        self.customer_view.submitButton.clicked.connect(self._add_customer)
+        self.customer_view.deleteButton.clicked.connect(self._remove_customer)
+        
+        # Add tabs
+        self.tabs.addTab(self.product_view, "Products")
+        self.tabs.addTab(self.customer_view, "Customers")
+        
+        # Set central widget
+        self.main_window.setCentralWidget(self.tabs)
+    
+    def _show_database_settings(self):
+        """
+        Show the database settings dialog.
         """
         dialog = DatabaseSettingsDialog(self.main_window)
         
         if dialog.exec_():
-            self.reconnectDatabase(dialog.get_config())
+            self._reconnect_database(dialog.get_config())
     
-    def reconnectDatabase(self, config=None):
+    def _reconnect_database(self, config=None):
         """
-        Reconnects to the database with the current settings.
+        Reconnect to the database with new settings.
         
         Args:
             config (DatabaseConfig, optional): New database configuration.
                 If None, the existing configuration will be used.
         """
+        # Close existing connection
         if hasattr(self, 'db_connection') and self.db_connection:
             self.db_connection.disconnect()
-
-        if config:
-            db_type = config.get_active_db_type()
-            
-            if db_type == "mariadb":
-                from model.MariaDBConnection import MariaDBConnection
-                mariadb_config = config.get_mariadb_config()
-                
-                try:
-                    self.db_connection = MariaDBConnection(
-                        host=mariadb_config.get("host", "localhost"),
-                        user=mariadb_config.get("user", "root"),
-                        password=mariadb_config.get("password", ""),
-                        database=mariadb_config.get("database", "wawi")
-                    )
-                    logger.info("Reconnected to MariaDB.")
-                except Exception as e:
-                    logger.warning(f"Error connecting to MariaDB: {e}. Falling back to SQLite.")
-                    self._create_sqlite_connection(config)
-            else:
-                self._create_sqlite_connection(config)
-        else:
-            self._create_sqlite_connection()
-
-        from model.database_queries import DatabaseQueries
-        self.db_connection.create_tables(DatabaseQueries.create_tables_query())
-
-        self.inventory_manager.db = self.db_connection
-        self.inventory_manager.loadProducts()
+        
+        # Create new connection
+        factory = DatabaseConnectionFactory(config)
+        self.db_connection = factory.create_connection()
+        
+        # Update managers
+        self.product_manager.db = self.db_connection
+        self.product_manager.load_all()
         
         self.customer_manager.db = self.db_connection
-        self.customer_manager.loadCustomers()
-
-        self.product_view.updateProductList(self.inventory_manager.products)
-        self.customer_view.updateCustomerList(self.customer_manager.customers)
-
-    def _create_sqlite_connection(self, config=None):
-        """
-        Creates a SQLite connection.
+        self.customer_manager.load_all()
         
-        Args:
-            config (DatabaseConfig, optional): Database configuration.
-                If None, the default path will be used.
-        """
-        from model.SQLiteConnection import SQLiteConnection
-        import os
-        
-        if config:
-            sqlite_config = config.get_sqlite_config()
-            database_path = sqlite_config.get("database_path")
-        else:
-            database_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "wawi.db")
-        
-        os.makedirs(os.path.dirname(database_path), exist_ok=True)
-
-        self.db_connection = SQLiteConnection(database_path)
-        logger.info(f"Connected to SQLite database at {database_path}")
+        # Update views
+        self.product_view.updateProductList(self.product_manager.items)
+        self.customer_view.updateCustomerList(self.customer_manager.items)
     
-    def importSampleData(self):
+    def _import_sample_data(self):
         """
-        Imports sample data into the database if it's empty.
+        Import sample data into the database if it's empty.
         """
-        # check if the database is empty
+        # Check if the database is empty
         product_count_query = "SELECT COUNT(*) as count FROM products"
         result = self.db_connection.fetch_one(product_count_query)
         
         if result and result.get('count', 0) == 0:
             logger.info("Database is empty. Importing sample data...")
             
-            # add sample products for testing
+            # Add sample products
             sample_products = [
                 Product(name="Laptop", price=999.99, quantity=10),
                 Product(name="Mouse", price=19.99, quantity=50),
@@ -186,9 +178,9 @@ class MainController:
             ]
             
             for product in sample_products:
-                self.inventory_manager.addProduct(product)
+                self.product_manager.add(product)
             
-            # add sample customers to the database for testing
+            # Add sample customers
             sample_customers = [
                 Customer(name="John Doe", address="123 Main St", email="john@example.com", phone="555-1234"),
                 Customer(name="Jane Smith", address="456 Oak Ave", email="jane@example.com", phone="555-5678"),
@@ -196,20 +188,21 @@ class MainController:
             ]
             
             for customer in sample_customers:
-                self.customer_manager.addCustomer(customer)
+                self.customer_manager.add(customer)
             
-            self.product_view.updateProductList(self.inventory_manager.products)
-            self.customer_view.updateCustomerList(self.customer_manager.customers)
+            # Update views
+            self.product_view.updateProductList(self.product_manager.items)
+            self.customer_view.updateCustomerList(self.customer_manager.items)
             
             logger.info("Sample data imported successfully.")
             QMessageBox.information(self.main_window, "Sample Data", "Sample data has been imported successfully.")
         else:
             logger.info("Database already contains data. Skipping sample import.")
             QMessageBox.information(self.main_window, "Sample Data", "Database already contains data. No new data was imported.")
-            
+    
     def closeEvent(self, event):
         """
-        Handles the window close event to clean up resources.
+        Handle the window close event to clean up resources.
         
         Args:
             event: The close event object.
@@ -218,125 +211,134 @@ class MainController:
             logger.info("Closing database connection...")
             self.db_connection.disconnect()
         event.accept()
-
-    def addProduct(self):
+    
+    def _add_product(self):
         """
-        Adds a new product to the inventory.
+        Add a new product to the inventory.
         """
         name, price, quantity = self.product_view.getInput()
         
+        # Validate inputs
         if not name:
-            self.showMessage(self.product_view, "Error", "Product name cannot be empty!")
+            self._show_message(self.product_view, "Error", "Product name cannot be empty!")
             return
-            
+        
         if not price:
-            self.showMessage(self.product_view, "Error", "Price cannot be empty!")
+            self._show_message(self.product_view, "Error", "Price cannot be empty!")
             return
-            
+        
         if not quantity:
-            self.showMessage(self.product_view, "Error", "Quantity cannot be empty!")
+            self._show_message(self.product_view, "Error", "Quantity cannot be empty!")
             return
-            
+        
+        # Create and add product
         try:
-            product = Product(
-                name=name,
-                price=float(price),
-                quantity=int(quantity)
-            )
-            if self.inventory_manager.addProduct(product):
-                self.product_view.clearInputs()
-                self.product_view.updateProductList(self.inventory_manager.products)
-                self.showMessage(self.product_view, "Success", f"Product '{name}' successfully added!")
-            else:
-                self.showMessage(self.product_view, "Error", f"Failed to add product: {self.inventory_manager.db.error}")
-        except ValueError as e:
-            self.showMessage(self.product_view, "Error", str(e))
-
-    def removeProduct(self):
-        """
-        Removes a product from the inventory by its ID.
-        """
-        selected_items = self.product_view.productList.selectedItems()
-        if not selected_items:
-            self.showMessage(self.product_view, "Note", "Please select a product to remove.")
-            return
+            product = Product(name=name, price=float(price), quantity=int(quantity))
             
+            if self.product_manager.add(product):
+                self.product_view.clearInputs()
+                self.product_view.updateProductList(self.product_manager.items)
+                self._show_message(self.product_view, "Success", f"Product '{name}' successfully added!")
+            else:
+                self._show_message(self.product_view, "Error", f"Failed to add product: {self.product_manager.db.error}")
+                
+        except ValueError as e:
+            self._show_message(self.product_view, "Error", str(e))
+    
+    def _remove_product(self):
+        """
+        Remove a product from the inventory.
+        """
+        selected_items = self.product_view.listWidget.selectedItems()
+        
+        if not selected_items:
+            self._show_message(self.product_view, "Note", "Please select a product to remove.")
+            return
+        
         for item in selected_items:
-            self.product_view.productList.takeItem(self.product_view.productList.row(item))
+            self.product_view.listWidget.takeItem(self.product_view.listWidget.row(item))
+            
             try:
+                # Extract ID from item text
                 selected_id = int(item.text().split(' | ')[0].split(' ')[1])
-                if self.inventory_manager.removeProduct(selected_id):
+                
+                if self.product_manager.remove(selected_id):
                     logger.info(f"Product removed: {selected_id}")
                 else:
-                    self.showMessage(self.product_view, "Error", f"Failed to remove product: {self.inventory_manager.db.error}")
+                    self._show_message(self.product_view, "Error", f"Failed to remove product: {self.product_manager.db.error}")
                     return
+                    
             except (ValueError, IndexError) as e:
-                self.showMessage(self.product_view, "Error", f"Error removing product: {str(e)}")
+                self._show_message(self.product_view, "Error", f"Error removing product: {str(e)}")
                 return
         
-        self.showMessage(self.product_view, "Success", "Selected products have been removed.")
-
-    def addCustomer(self):
+        self._show_message(self.product_view, "Success", "Selected products have been removed.")
+    
+    def _add_customer(self):
         """
-        Adds a new customer to the database.
+        Add a new customer to the database.
         """
         name, address, email, phone = self.customer_view.getInput()
         
+        # Validate inputs
         if not name:
-            self.showMessage(self.customer_view, "Error", "Name cannot be empty!")
+            self._show_message(self.customer_view, "Error", "Name cannot be empty!")
             return
-            
+        
         if not address:
-            self.showMessage(self.customer_view, "Error", "Address cannot be empty!")
+            self._show_message(self.customer_view, "Error", "Address cannot be empty!")
             return
-            
+        
         if not email:
-            self.showMessage(self.customer_view, "Error", "Email cannot be empty!")
+            self._show_message(self.customer_view, "Error", "Email cannot be empty!")
             return
-            
+        
+        # Create and add customer
         try:
-            customer = Customer(
-                name=name,
-                address=address,
-                email=email,
-                phone=phone
-            )
-            if self.customer_manager.addCustomer(customer):
-                self.customer_view.clearInputs()
-                self.customer_view.updateCustomerList(self.customer_manager.customers)
-                self.showMessage(self.customer_view, "Success", f"Customer '{name}' successfully added!")
-            else:
-                self.showMessage(self.customer_view, "Error", f"Failed to add customer: {self.customer_manager.db.error}")
-        except ValueError as e:
-            self.showMessage(self.customer_view, "Error", str(e))
-
-    def removeCustomer(self):
-        """
-        Removes a customer from the database by ID.
-        """
-        selected_items = self.customer_view.customerList.selectedItems()
-        if not selected_items:
-            self.showMessage(self.customer_view, "Note", "Please select a customer to remove.")
-            return
+            customer = Customer(name=name, address=address, email=email, phone=phone)
             
+            if self.customer_manager.add(customer):
+                self.customer_view.clearInputs()
+                self.customer_view.updateCustomerList(self.customer_manager.items)
+                self._show_message(self.customer_view, "Success", f"Customer '{name}' successfully added!")
+            else:
+                self._show_message(self.customer_view, "Error", f"Failed to add customer: {self.customer_manager.db.error}")
+                
+        except ValueError as e:
+            self._show_message(self.customer_view, "Error", str(e))
+    
+    def _remove_customer(self):
+        """
+        Remove a customer from the database.
+        """
+        selected_items = self.customer_view.listWidget.selectedItems()
+        
+        if not selected_items:
+            self._show_message(self.customer_view, "Note", "Please select a customer to remove.")
+            return
+        
         for item in selected_items:
-            self.customer_view.customerList.takeItem(self.customer_view.customerList.row(item))
+            self.customer_view.listWidget.takeItem(self.customer_view.listWidget.row(item))
+            
             try:
+                # Extract ID from item text
                 selected_id = int(item.text().split(' | ')[0].split(' ')[1])
-                if self.customer_manager.removeCustomer(selected_id):
+                
+                if self.customer_manager.remove(selected_id):
                     logger.info(f"Customer removed: {selected_id}")
                 else:
-                    self.showMessage(self.customer_view, "Error", f"Failed to remove customer: {self.customer_manager.db.error}")
+                    self._show_message(self.customer_view, "Error", f"Failed to remove customer: {self.customer_manager.db.error}")
                     return
+                    
             except (ValueError, IndexError) as e:
-                self.showMessage(self.customer_view, "Error", f"Error removing customer: {str(e)}")
+                self._show_message(self.customer_view, "Error", f"Error removing customer: {str(e)}")
                 return
         
-        self.showMessage(self.customer_view, "Success", "Selected customers have been removed.")
-        
-    def showMessage(self, view, title, message):
+        self._show_message(self.customer_view, "Success", "Selected customers have been removed.")
+    
+    def _show_message(self, view, title, message):
         """
-        Displays a message box in the specified view.
+        Display a message box in the specified view.
         
         Args:
             view: The view where the message should be displayed.
@@ -347,11 +349,11 @@ class MainController:
             view.showMessage(title, message)
         else:
             QMessageBox.information(view, title, message)
-
+    
     def start(self):
         """
-        Updates the views for loaded data and displays the main window.
+        Update the views with loaded data and display the main window.
         """
-        self.product_view.updateProductList(self.inventory_manager.products)
-        self.customer_view.updateCustomerList(self.customer_manager.customers)
+        self.product_view.updateProductList(self.product_manager.items)
+        self.customer_view.updateCustomerList(self.customer_manager.items)
         self.main_window.show()

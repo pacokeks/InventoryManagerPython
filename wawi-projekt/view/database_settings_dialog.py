@@ -1,130 +1,181 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QFileDialog, QGroupBox, QFormLayout, QMessageBox)
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIntValidator
 
 from model.database_config import DatabaseConfig
+from model.mariadb_connection import MariaDBConnection
+from model.sqlite_connection import SQLiteConnection
+from model.logger_service import LoggerService
+
+logger = LoggerService.get_logger('DatabaseSettingsDialog')
 
 class DatabaseSettingsDialog(QDialog):
     """
     Dialog for managing database connection settings.
+    
+    This dialog allows the user to configure database settings for both
+    MariaDB and SQLite connections.
+    
+    Attributes:
+        config (DatabaseConfig): The database configuration.
+        dbTypeCombo (QComboBox): Database type selection combo box.
+        mariadbGroup (QGroupBox): Group box for MariaDB settings.
+        sqliteGroup (QGroupBox): Group box for SQLite settings.
+        hostInput (QLineEdit): Input field for MariaDB host.
+        portInput (QLineEdit): Input field for MariaDB port.
+        userInput (QLineEdit): Input field for MariaDB user.
+        passwordInput (QLineEdit): Input field for MariaDB password.
+        databaseInput (QLineEdit): Input field for MariaDB database name.
+        sqlitePathInput (QLineEdit): Input field for SQLite database path.
     """
     
     def __init__(self, parent=None):
         """
-        Initializes the database settings dialog.
+        Initialize the database settings dialog.
         
         Args:
-            parent (QWidget, optional): Parent widget
+            parent (QWidget, optional): Parent widget.
         """
         super().__init__(parent)
         
+        # Load database configuration
         self.config = DatabaseConfig()
         
-        self.initUI()
-        self.loadSettings()
+        # Initialize UI
+        self._init_ui()
+        
+        # Load settings into UI
+        self._load_settings()
     
-    def initUI(self):
+    def _init_ui(self):
         """
-        Sets up the dialog UI.
+        Initialize the dialog UI.
         """
+        # Set dialog properties
         self.setWindowTitle("Database Settings")
         self.setMinimumWidth(400)
         
-        mainLayout = QVBoxLayout()
-
-        dbTypeLayout = QHBoxLayout()
-        dbTypeLayout.addWidget(QLabel("Database Type:"))
+        # Main layout
+        main_layout = QVBoxLayout()
+        
+        # Database type selection
+        db_type_layout = QHBoxLayout()
+        db_type_layout.addWidget(QLabel("Database Type:"))
         self.dbTypeCombo = QComboBox()
         self.dbTypeCombo.addItem("MariaDB")
         self.dbTypeCombo.addItem("SQLite")
-        self.dbTypeCombo.currentIndexChanged.connect(self.onDbTypeChanged)
-        dbTypeLayout.addWidget(self.dbTypeCombo)
+        self.dbTypeCombo.currentIndexChanged.connect(self._on_db_type_changed)
+        db_type_layout.addWidget(self.dbTypeCombo)
         
-        mainLayout.addLayout(dbTypeLayout)
-
+        main_layout.addLayout(db_type_layout)
+        
+        # MariaDB settings group
         self.mariadbGroup = QGroupBox("MariaDB Settings")
-        mariadbLayout = QFormLayout()
+        mariadb_layout = QFormLayout()
         
+        # Host input
         self.hostInput = QLineEdit()
-        mariadbLayout.addRow("Host:", self.hostInput)
+        mariadb_layout.addRow("Host:", self.hostInput)
         
+        # Port input
+        self.portInput = QLineEdit()
+        self.portInput.setValidator(QIntValidator(1, 65535))  # Gültiger Port-Bereich
+        mariadb_layout.addRow("Port:", self.portInput)
+        
+        # User input
         self.userInput = QLineEdit()
-        mariadbLayout.addRow("User:", self.userInput)
+        mariadb_layout.addRow("User:", self.userInput)
         
+        # Password input
         self.passwordInput = QLineEdit()
         self.passwordInput.setEchoMode(QLineEdit.Password)
-        mariadbLayout.addRow("Password:", self.passwordInput)
+        mariadb_layout.addRow("Password:", self.passwordInput)
         
+        # Database input
         self.databaseInput = QLineEdit()
-        mariadbLayout.addRow("Database:", self.databaseInput)
+        mariadb_layout.addRow("Database:", self.databaseInput)
         
-        self.mariadbGroup.setLayout(mariadbLayout)
-        mainLayout.addWidget(self.mariadbGroup)
+        self.mariadbGroup.setLayout(mariadb_layout)
+        main_layout.addWidget(self.mariadbGroup)
         
+        # SQLite settings group
         self.sqliteGroup = QGroupBox("SQLite Settings")
-        sqliteLayout = QFormLayout()
+        sqlite_layout = QFormLayout()
         
-        self.sqlitePathLayout = QHBoxLayout()
+        # SQLite path input
+        sqlite_path_layout = QHBoxLayout()
         self.sqlitePathInput = QLineEdit()
         self.sqlitePathInput.setReadOnly(True)
-        self.sqlitePathLayout.addWidget(self.sqlitePathInput)
+        sqlite_path_layout.addWidget(self.sqlitePathInput)
         
-        browseButton = QPushButton("Browse...")
-        browseButton.clicked.connect(self.browseSqlitePath)
-        self.sqlitePathLayout.addWidget(browseButton)
+        # Browse button
+        browse_button = QPushButton("Browse...")
+        browse_button.clicked.connect(self._browse_sqlite_path)
+        sqlite_path_layout.addWidget(browse_button)
         
-        sqliteLayout.addRow("Database File:", self.sqlitePathLayout)
+        sqlite_layout.addRow("Database File:", sqlite_path_layout)
         
-        self.sqliteGroup.setLayout(sqliteLayout)
-        mainLayout.addWidget(self.sqliteGroup)
+        self.sqliteGroup.setLayout(sqlite_layout)
+        main_layout.addWidget(self.sqliteGroup)
         
-        testButton = QPushButton("Test Connection")
-        testButton.clicked.connect(self.testConnection)
-        mainLayout.addWidget(testButton)
+        # Test connection button
+        test_button = QPushButton("Test Connection")
+        test_button.clicked.connect(self._test_connection)
+        main_layout.addWidget(test_button)
         
-        buttonLayout = QHBoxLayout()
+        # Dialog buttons
+        button_layout = QHBoxLayout()
         
-        saveButton = QPushButton("Save")
-        saveButton.clicked.connect(self.saveSettings)
-        buttonLayout.addWidget(saveButton)
+        # Save button
+        save_button = QPushButton("Save")
+        save_button.clicked.connect(self._save_settings)
+        button_layout.addWidget(save_button)
         
-        cancelButton = QPushButton("Cancel")
-        cancelButton.clicked.connect(self.reject)
-        buttonLayout.addWidget(cancelButton)
+        # Cancel button
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(cancel_button)
         
-        mainLayout.addLayout(buttonLayout)
+        main_layout.addLayout(button_layout)
         
-        self.setLayout(mainLayout)
+        # Set dialog layout
+        self.setLayout(main_layout)
     
-    def loadSettings(self):
+    def _load_settings(self):
         """
-        Loads current settings into the UI.
+        Load current settings into the UI.
         """
+        # Set database type
         db_type = self.config.get_active_db_type()
         self.dbTypeCombo.setCurrentIndex(0 if db_type == "mariadb" else 1)
         
+        # Load MariaDB settings
         mariadb_config = self.config.get_mariadb_config()
         self.hostInput.setText(mariadb_config.get("host", "localhost"))
+        self.portInput.setText(str(mariadb_config.get("port", 3306)))  # Default zu 3306
         self.userInput.setText(mariadb_config.get("user", "root"))
         self.passwordInput.setText(mariadb_config.get("password", ""))
         self.databaseInput.setText(mariadb_config.get("database", "wawi"))
         
+        # Load SQLite settings
         sqlite_config = self.config.get_sqlite_config()
         self.sqlitePathInput.setText(sqlite_config.get("database_path", DatabaseConfig.DEFAULT_SQLITE_PATH))
         
-        self.onDbTypeChanged()
+        # Show/hide groups based on selected database type
+        self._on_db_type_changed()
     
-    def onDbTypeChanged(self):
+    def _on_db_type_changed(self):
         """
-        Handles database type selection changes.
+        Handle database type selection changes.
         """
         is_mariadb = self.dbTypeCombo.currentIndex() == 0
         
+        # Show/hide settings groups based on selected database type
         self.mariadbGroup.setVisible(is_mariadb)
         self.sqliteGroup.setVisible(not is_mariadb)
     
-    def browseSqlitePath(self):
+    def _browse_sqlite_path(self):
         """
-        Opens a file dialog to select the SQLite database file.
+        Open a file dialog to select the SQLite database file.
         """
         file_path, _ = QFileDialog.getSaveFileName(
             self,
@@ -136,96 +187,112 @@ class DatabaseSettingsDialog(QDialog):
         if file_path:
             self.sqlitePathInput.setText(file_path)
     
-    def testConnection(self):
+    def _save_settings_to_config(self):
         """
-        Tests the database connection with the current settings.
+        Save the settings to the configuration without closing the dialog.
         """
-        self.saveSettingsToConfig()
+        # Save database type
+        db_type = "mariadb" if self.dbTypeCombo.currentIndex() == 0 else "sqlite"
+        self.config.set_db_type(db_type)
         
-        if self.dbTypeCombo.currentIndex() == 0:
-            from model.MariaDBConnection import MariaDBConnection
-            mariadb_config = self.config.get_mariadb_config()
+        # Save MariaDB settings
+        try:
+            port = int(self.portInput.text()) if self.portInput.text().strip() else 3306
+        except ValueError:
+            port = 3306
             
-            try:
+        # Speichern der MariaDB-Konfiguration mit Port
+        self.config.set_mariadb_config_with_port(
+            host=self.hostInput.text(),
+            user=self.userInput.text(),
+            password=self.passwordInput.text(),
+            database=self.databaseInput.text(),
+            port=port
+        )
+        
+        # Save SQLite settings
+        self.config.set_sqlite_path(self.sqlitePathInput.text())
+    
+    def _test_connection(self):
+        """
+        Test the database connection with the current settings.
+        """
+        # Save settings to config
+        self._save_settings_to_config()
+        
+        try:
+            # Test connection based on selected database type
+            if self.dbTypeCombo.currentIndex() == 0:
+                # Test MariaDB connection
+                mariadb_config = self.config.get_mariadb_config()
+                
+                # Port aus der Konfiguration extrahieren
+                port = mariadb_config.get("port", 3306)
+                
                 connection = MariaDBConnection(
                     host=mariadb_config.get("host", "localhost"),
                     user=mariadb_config.get("user", "root"),
                     password=mariadb_config.get("password", ""),
-                    database=mariadb_config.get("database", "wawi")
+                    database=mariadb_config.get("database", "wawi"),
+                    port=port
                 )
                 
-                if connection.connection is not None:
+                if connection.connect():
                     QMessageBox.information(
                         self,
                         "Connection Test",
-                        "MariaDB connection successful!"
+                        f"MariaDB connection successful! Connected to {connection.database} on {connection.host}:{connection.port}"
                     )
+                    connection.disconnect()
                 else:
                     QMessageBox.warning(
                         self,
                         "Connection Test",
                         f"MariaDB connection failed: {connection.error}"
                     )
-            except Exception as e:
-                QMessageBox.warning(
-                    self,
-                    "Connection Test",
-                    f"MariaDB connection failed: {e}"
-                )
-        else:
-            from model.SQLiteConnection import SQLiteConnection
-            sqlite_config = self.config.get_sqlite_config()
-            
-            try:
+            else:
+                # Test SQLite connection
+                sqlite_config = self.config.get_sqlite_config()
+                
                 connection = SQLiteConnection(
                     sqlite_config.get("database_path", DatabaseConfig.DEFAULT_SQLITE_PATH)
                 )
                 
-                if connection.connection is not None:
+                if connection.connect():
                     QMessageBox.information(
                         self,
                         "Connection Test",
-                        "SQLite connection successful!"
+                        f"SQLite connection successful! Connected to {connection.database_path}"
                     )
+                    connection.disconnect()
                 else:
                     QMessageBox.warning(
                         self,
                         "Connection Test",
                         f"SQLite connection failed: {connection.error}"
                     )
-            except Exception as e:
-                QMessageBox.warning(
-                    self,
-                    "Connection Test",
-                    f"SQLite connection failed: {e}"
-                )
+                    
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Connection Test",
+                f"Error testing connection: {str(e)}"
+            )
+            logger.error(f"Error testing database connection: {e}", exc_info=True)
     
-    def saveSettingsToConfig(self):
+    def _save_settings(self):
         """
-        Saves the settings to the configuration without closing the dialog.
+        Save the settings and close the dialog.
         """
-        db_type = "mariadb" if self.dbTypeCombo.currentIndex() == 0 else "sqlite"
-        self.config.set_db_type(db_type)
-
-        self.config.set_mariadb_config(
-            self.hostInput.text(),
-            self.userInput.text(),
-            self.passwordInput.text(),
-            self.databaseInput.text()
-        )
-
-        self.config.set_sqlite_path(self.sqlitePathInput.text())
-    
-    def saveSettings(self):
-        """
-        Saves the settings and closes the dialog.
-        """
-        self.saveSettingsToConfig()
+        # Save settings to config
+        self._save_settings_to_config()
+        
+        # Accept dialog (close with OK result)
         self.accept()
     
     def get_config(self):
         """
-        Returns the current database configuration.
+        Get the current database configuration.
         
         Returns:
             DatabaseConfig: The current configuration.
