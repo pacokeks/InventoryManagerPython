@@ -1,11 +1,11 @@
 {
-  "db_type": "sqlite",
+  "db_type": "mariadb",
   "mariadb": {
     "host": "localhost",
     "user": "root",
     "password": "",
     "database": "wawi",
-    "port": 3306
+    "port": 8111
   },
   "sqlite": {
     "database_path": "data/wawi.db"

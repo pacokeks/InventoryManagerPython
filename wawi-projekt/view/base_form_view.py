@@ -1,6 +1,4 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QLabel, 
-                           QMessageBox, QListWidget, QHBoxLayout, 
-                           QSplitter, QFrame, QGridLayout, QCheckBox)
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QLabel, QMessageBox, QListWidget, QHBoxLayout, QSplitter, QFrame, QGridLayout, QCheckBox)
 from PyQt5.QtCore import Qt
 
 class BaseFormView(QWidget):
